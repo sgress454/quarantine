@@ -1,6 +1,6 @@
 {
   "name": "quarantine",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Safely run untrusted code",
   "main": "index.js",
   "scripts": {
