@@ -1,6 +1,8 @@
 // Reference to the airlock process
 var airlock;
 
+var path = require('path');
+
 module.exports = function(timeout) {
 
 	// If we don't have an airlock spun up already, create one now

@@ -1,11 +1,19 @@
 {
   "name": "quarantine",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Safely run untrusted code",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "sgress454",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sgress454/quarantine.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sgress454/quarantine/issues"
+  },
+  "homepage": "https://github.com/sgress454/quarantine"
 }
