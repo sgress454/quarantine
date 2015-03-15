@@ -25,18 +25,6 @@ returns:
 }
 ```
 
-```
-var timeout = 500;
-var quarantine = require("quarantine")(timeout);
-
-quarantine.on("message", console.log);
-
-quarantine.send({
-	context: {foo: "bar"},
-	script: "(function(){return foo;})()"
-});
-```
-
 ### Catching errors
 
 ```
