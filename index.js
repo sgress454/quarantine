@@ -1,21 +1,19 @@
 /**
- * Coordinate quarantine of dangerous code using an airlock
+ * Coordinate quarantine of dangerous code using a worker
  * @author sgress454
  */
-
 
 /**
  * Module dependencies
  */
 var path = require('path');
+var fork = require('child_process').fork;
 
-
-// Reference to the airlock process
-var airlock;
+// Reference to the worker process
+var worker;
 
 // Allowable time for worker to run before timing out
 var timeout = 250;
-
 
 module.exports = function(_timeout) {
 
@@ -36,71 +34,88 @@ module.exports = function(_timeout) {
  */
 function run(context, script, cb) {
 
-	// If we don't have an airlock spun up already, create one now
-	if (!airlock) {
-		airlock = spinUpAirlock(timeout);
-	}
+	// Spin up a worker if we don't have one
+	if (!worker) {spinUpWorker();}
 
-	// Send the context and script into the airlock.  The airlock will pass
-	// the script down to the worker and handle timeout
-	airlock.send({
-      context: context,
-      script: script
-	});
+	// Handle messages coming back from the worker
+	worker.on("message", handleWorkerMessage);
+	// Handle the worker dying an untimely death
+	worker.on("exit", handleWorkerExit);
 
-	// When a message is received from the airlock, handle accordingly
-	airlock.on("message", returnResult);
+	// Set up a timeout--if the worker takes to long, we'll
+	// tell the caller that it failed and respawn it
+	var selfDestruct = setTimeout(function() {
 
-	// If the airlock itself crashes, tell the caller
-	airlock.on('exit', onExit);
+		// Remove all the handlers from this (possibly locked, about to be dead) worker
+		worker.removeListener("message", handleWorkerMessage);
+		worker.removeListener("exit", handleWorkerExit);
 
-	function onExit() {
+		// Kill the worker with extreme prejudice--it'll be respawned automatically
+		// by the handler bound in spinUpWorker()
+		worker.kill('SIGKILL');
 
-		// Remove listeners added to the airlock for this run
-		airlock.removeListener("message", returnResult);
-		airlock.removeListener("exit", onExit);
-
-		airlock = spinUpAirlock(timeout);
-		var timeoutError = new Error("Airlock crashed!");
-		timeoutError.code = 'E_AIRLOCK_CRASHED';
+		// Let the caller know it didn't work out
+		var timeoutError = new Error("Worker timed out!");
+		timeoutError.code = 'E_WORKER_TIMEOUT';
 		return cb(timeoutError);
 
-	}
+	}, timeout);
 
-	function returnResult(result) {
+	// Give the worker its marching orders
+	worker.send({context: context, script: script});
 
-		// Remove listeners added to the airlock for this run
-		airlock.removeListener("message", returnResult);
-		airlock.removeListener("exit", onExit);
+	// Handler a return message from the worker
+	function handleWorkerMessage(result) {
+
+		// Clear the self-destruct
+		clearTimeout(selfDestruct);
+
+		// Clear the current handlers from the worker
+		worker.removeListener("message", handleWorkerMessage);
+		worker.removeListener("exit", handleWorkerExit);
 
 		// If we get the all clear, return the result of running the script
 		if (result.status == 'ok') {
 		  return cb(null, result.result);
 		}
 
-		// If the quarantine worker timed out, it means some really nasty
-		// code got put in there
-		if (result.status == 'worker_timeout') {
-		  var timeoutError = new Error("Worker timed out!");
-		  timeoutError.code = 'E_WORKER_TIMEOUT';
-		  return cb(timeoutError);
-		}
-
 		// Otherwise it was just a regular error in the evaluated code
 		return cb(new Error(result.result));
+
+	}  
+
+	// Handle the worker dying in the line of duty.
+	// 
+	// Note that it'll be automatically respawned by the on('exit') event handler
+	// inside of spinUpWorker
+	function handleWorkerExit() {
+
+		// Clear the self-destruct timeout; worker already died
+		clearTimeout(selfDestruct);
+
+		// Clear the current handlers from the worker
+		worker.removeListener("message", handleWorkerMessage);
+		worker.removeListener("exit", handleWorkerExit);
+
+		// Return an error to the caller
+		var workerError = new Error("Worker died!");
+		workerError.code = 'E_WORKER_DEATH';
+		return cb(workerError);
+
 	}
 
 }
 
-// Before we die, kill the airlock (which will kill the worker)
+// Spin up a new worker
+function spinUpWorker(timeout) {
+  worker = fork(path.resolve(__dirname, "worker.js"));
+  // If the worker dies, respawn it
+  worker.on('exit', spinUpWorker);
+  return worker;
+}
+
+// Before quarantine dies, kill the worker
 process.on('exit', function() {
-	airlock && airlock.kill('SIGHUP');
+	if (worker) {worker.kill('SIGHUP');}
 });
 
-// Spin up a new airlock
-function spinUpAirlock(timeout) {
-  airlock = require('child_process').fork(path.resolve(__dirname, "airlock.js"), [timeout]);
-  // If the airlock dies, respawn it
-  airlock.on('exit', spinUpAirlock);
-  return airlock;
-}
