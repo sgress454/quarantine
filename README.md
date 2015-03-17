@@ -5,65 +5,50 @@
 ### Usage:
 
 ```
-var timeout = 500;
-var quarantine = require("quarantine")(timeout);
-
-quarantine.on("message", console.log);
-
-quarantine.send({
-	context: {foo: "bar"},
-	script: "(function(){return foo;})()"
-});
+var quarantine = require("quarantine")(timeoutInMilliseconds);
+quarantine([context], stringifiedScript, [callback])
 ```
 
-returns: 
+### Examples:
+
+##### Success
 
 ```
-{
-	status: "ok",
-	result: "bar"
-}
+var quarantine = require("quarantine")(500);
+
+quarantine({foo: "bar"}, "(function(){return foo;})()", console.log);
 ```
 
-### Catching errors
+result: 
 
 ```
-var timeout = 500;
-var quarantine = require("quarantine")(timeout);
-
-quarantine.on("message", console.log);
-
-quarantine.send({
-	script: "(function(){require('fs');})()"
-});
+null 'bar'
 ```
 
-returns: 
+##### Catching errors
 
 ```
-{
-	status: 'script_error',
-	result: 'require is not defined' 
-}
+var quarantine = require("quarantine")(500);
+
+quarantine("(function(){require('fs');})()", console.log);
 ```
 
-### Catching evil
+result: 
 
 ```
-var timeout = 500;
-var quarantine = require("quarantine")(timeout);
-
-quarantine.on("message", console.log);
-
-quarantine.send({
-	script: "(function(){while(true);})()"
-});
+[Error: require is not defined]
 ```
 
-returns: 
+##### Catching evil
 
 ```
-{
-	status: 'worker_timeout'
-}
+var quarantine = require("quarantine")(500);
+
+quarantine("(function(){while(true);})()", console.log);
+```
+
+result: 
+
+```
+{ [Error: Worker timed out!] code: 'E_WORKER_TIMEOUT' }
 ```
