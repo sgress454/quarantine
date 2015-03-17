@@ -15,10 +15,16 @@ var worker;
 // Allowable time for worker to run before timing out
 var timeout = 250;
 
-module.exports = function(_timeout) {
+// Options to send to the worker when we spin it up
+var options = {};
+
+module.exports = function(_timeout, _options) {
 
 	// Set the timeout to whatever the user desires, or the default
 	timeout = _timeout || timeout;
+
+	// Set the options to whatever was passed in, or an empty object
+	options = _options || {};
 
 	// Return a reference to the "run function"
 	return run;
@@ -125,7 +131,8 @@ function run(context, script, cb) {
 
 // Spin up a new worker
 function spinUpWorker(timeout) {
-  worker = fork(path.resolve(__dirname, "worker.js"));
+  // Fork the worker process, using the stringfied options as argument
+  worker = fork(path.resolve(__dirname, "worker.js"), [JSON.stringify(options)]);
   // If the worker dies, respawn it
   worker.on('exit', spinUpWorker);
   return worker;

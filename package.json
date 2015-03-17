@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/sgress454/quarantine/issues"
   },
-  "homepage": "https://github.com/sgress454/quarantine"
+  "homepage": "https://github.com/sgress454/quarantine",
+  "dependencies": {
+    "lodash": "^3.5.0"
+  }
 }
