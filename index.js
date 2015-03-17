@@ -34,6 +34,23 @@ module.exports = function(_timeout) {
  */
 function run(context, script, cb) {
 
+	// Make context optional
+	if (typeof context !== 'object') {
+		cb = script;
+		script = context;
+		context = {};
+	}
+
+	// Make sure context is always at least an empty object
+	if (context === null) {
+		context = {};
+	}
+
+	// Make cb optional
+	if (typeof cb !== 'function') {
+		cb = function(){};
+	}
+
 	// Spin up a worker if we don't have one
 	if (!worker) {spinUpWorker();}
 
