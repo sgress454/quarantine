@@ -8,31 +8,31 @@ var vm = require('vm');
 var _ = require('lodash');
 
 // Options for the worker
-var options = {};
+var workerOptions = {};
 
 // If we received an argument, try to parse it as JSON
 if (process.argv[2]) {
   try {
-    options = JSON.parse(process.argv[2]);
+    workerOptions = JSON.parse(process.argv[2]);
   } catch (e) {
-    options = {};
+    workerOptions = {};
   }  
 }
 
-// If `options` isn't  a plain object, make it an empty one
-if (!_.isPlainObject(options) || options === null) {
-  options = {};
+// If `workerOptions` isn't  a plain object, make it an empty one
+if (!_.isPlainObject(workerOptions) || workerOptions === null) {
+  workerOptions = {};
 }
 
-// If `options.requires` isn't a plain object, make it an empty one
-if (!_.isPlainObject(options.requires) || options.requires === null) {
-  options.requires = {};
+// If `workerOptions.requires` isn't a plain object, make it an empty one
+if (!_.isPlainObject(workerOptions.requires) || workerOptions.requires === null) {
+  workerOptions.requires = {};
 }
 
-// Attempt to require any modules that were passed in via options.require
+// Attempt to require any modules that were passed in via workerOptions.require
 // and add them to the default context
 var defaultContext = {};
-_.each(options.requires, function(path, contextKey) {
+_.each(workerOptions.requires, function(path, contextKey) {
   try {
     defaultContext[contextKey] = require(path);  
   } catch(e) {}
@@ -46,13 +46,16 @@ defaultContext.require = function(module) {
 };
 
 // Register a handler for instructions from the airlock
-process.on("message", function(options) {
+process.on("message", function(taskOptions) {
+
 
   // Get the context we should run the script in
-  var context = _.extend({}, defaultContext, options.context);
+  var context = _.extend({}, defaultContext, taskOptions.context);
 
   // Get the script we're being ordered to run
-  var script = options.script;
+  var script = taskOptions.script;
+
+  var key = taskOptions.key;
 
   // Try to protect ourselves using try/catch
   try {
@@ -63,7 +66,8 @@ process.on("message", function(options) {
     // If successful, send back the all-clear and the result
     process.send({
       status: "ok",
-      result: result
+      result: result,
+      key: key
     });
   } 
 
@@ -72,7 +76,8 @@ process.on("message", function(options) {
     // If the script failed, send back an error status and message
     process.send({
       status: "script_error",
-      result: e.message
+      result: e.message,
+      key: key
     });
   }
 

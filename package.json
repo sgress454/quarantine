@@ -4,7 +4,7 @@
   "description": "Safely run untrusted code",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha test --reporter=spec"
   },
   "author": "sgress454",
   "license": "MIT",
@@ -18,5 +18,9 @@
   "homepage": "https://github.com/sgress454/quarantine",
   "dependencies": {
     "lodash": "^3.5.0"
+  },
+  "devDependencies": {
+    "async": "^0.9.0",
+    "deasync": "0.0.10"
   }
 }
