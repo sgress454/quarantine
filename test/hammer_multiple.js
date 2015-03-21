@@ -10,7 +10,7 @@ for (var i = 50; i > 0; i--) {iterator.push(i);}
 describe('Multiple workers :: ', function () {
 
   before(function() {
-    quarantine = require('../')(250, {numWorkers: 5});
+    quarantine = require('../')(250, {numWorkers: 10});
   });
 
   after(function() {
