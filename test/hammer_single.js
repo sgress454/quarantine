@@ -61,7 +61,7 @@ describe('Single worker :: ', function () {
 
       it ('quarantine should respond with 50 timeout errors', function(done) {
 
-        this.timeout(250 * 51);
+        this.timeout(500 * 51);
 
         async.each(iterator, function(i, cb) {
   
