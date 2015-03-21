@@ -33,8 +33,7 @@ var killed = false;
  *
  * Options: 
  * numWorkers {integer} Number of workers to keep in the pool.  Each worker is a node process, 
- *                      so be mindful of resource usage and note that it doesn't make sense to
- *                      have more workers than CPU cores.
+ *                      so be mindful of resource usage.
  * requires {object} Hash of module name => module path that each worker should make available as
  *                   both local variables in the sandbox, and as modules accessible with the sandboxed
  *                   "require()" function
