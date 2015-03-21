@@ -60,6 +60,13 @@ process.on("message", function(taskOptions) {
   // Try to protect ourselves using try/catch
   try {
 
+    // Let the quarantine know that we're about to start crunching.
+    // This will start the self-destruct timer.
+    process.send({
+      status: "begun",
+      key: key
+    });
+
     // Attempt to run the script
     var result = vm.runInContext(script, vm.createContext(context));
 

@@ -159,6 +159,9 @@ function _run(worker, context, script, taskOptions, cb) {
   // Flag the worker as busy so it doesn't accept new tasks
   worker.busy = true;
 
+  // Self-destruct timer
+  var selfDestruct;
+
   // Generate a random key to identify this task
   var key = Math.random();
 
@@ -170,25 +173,6 @@ function _run(worker, context, script, taskOptions, cb) {
   // Handle the worker dying an untimely death
   worker.on("exit", handleWorkerExit);
 
-  // Set up a timeout--if the worker takes to long, we'll
-  // tell the caller that it failed and respawn it
-  var selfDestruct = setTimeout(function() {
-
-    // Remove all the handlers from this (possibly locked, about to be dead) worker
-    worker.removeListener("message", handleWorkerMessage);
-    worker.removeListener("exit", handleWorkerExit);
-
-    // Kill the worker with extreme prejudice--it'll be respawned automatically
-    // by the handler bound in spinUpWorker()
-    worker.kill('SIGKILL');
-
-    // Let the caller know it didn't work out
-    var timeoutError = new Error("Worker timed out!");
-    timeoutError.code = 'E_WORKER_TIMEOUT';
-    return cb(timeoutError);
-
-  }, taskOptions.timeout || timeout);
-
   // Give the worker its marching orders
   worker.send({context: context, script: script, key: key});
 
@@ -199,6 +183,30 @@ function _run(worker, context, script, taskOptions, cb) {
     // This should never happen at this point, since workers should only
     // be handling one task at a time.
     if (result.key !== key) {return;}
+
+    // If the message is "begun", we'll start the countdown
+    if (result.status == "begun") {
+      // Set up a timeout--if the worker takes to long, we'll
+      // tell the caller that it failed and respawn it
+      selfDestruct = setTimeout(function() {
+
+        // Remove all the handlers from this (possibly locked, about to be dead) worker
+        worker.removeListener("message", handleWorkerMessage);
+        worker.removeListener("exit", handleWorkerExit);
+
+        // Kill the worker with extreme prejudice--it'll be respawned automatically
+        // by the handler bound in spinUpWorker()
+        worker.kill('SIGKILL');
+
+        // Let the caller know it didn't work out
+        var timeoutError = new Error("Worker timed out!");
+        timeoutError.code = 'E_WORKER_TIMEOUT';
+        return cb(timeoutError);
+
+      }, taskOptions.timeout || timeout);
+
+      return;
+    }
 
     // Clear the self-destruct
     clearTimeout(selfDestruct);
