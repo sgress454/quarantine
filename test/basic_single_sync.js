@@ -1,6 +1,6 @@
 var assert = require('assert');
 var fibFn = "(function fibonacci(n) {if (n < 2){return 1;}else{return fibonacci(n-2) + fibonacci(n-1);}})";
-
+var deasync = require('deasync');
 var quarantine;
 
 describe('Single worker :: ', function () {
@@ -13,36 +13,41 @@ describe('Single worker :: ', function () {
     quarantine.kill();
   });
 
-  describe('Basic usage (async) ::', function() {
+  describe('Basic usage (sync) ::', function() {
 
     describe('Given a simple, correct Javascript function', function() {
 
       it ('the worker should return "ok" with the correct result', function(done) {
 
-        quarantine("(function(){return 123;})()", function(err, result) {
-          assert (!err);
+        try {
+          var result = deasync(function(cb){return quarantine("(function(){return 123;})()", cb);}) ();
           assert.equal(result, 123);
           return done();
-
-        });
+        } catch (e) {
+          return done(e);
+        }
 
       });
 
       it ('even when the main loop is blocked', function(done) {
-        quarantine("(function(){return 123;})()", function(err, result) {
-          assert (!err);
-          assert.equal(result, 123);
-          return done();
-        });
         setTimeout(function() {
-          (function fibonacci(n) {if (n < 2){return 1;}else{return fibonacci(n-2) + fibonacci(n-1);}})(40);  
-        });
+          try {
+            var result = deasync(function(cb){return quarantine("(function fibonacci(n) {if (n < 2){return 1;}else{return fibonacci(n-2) + fibonacci(n-1);}})(20)", cb);})();
+            assert.equal(result, 10946);
+            return done();
+          } catch (e) {
+            return done(e);
+          }
+        },1);
+        setTimeout(function() {
+          (function fibonacci(n) {if (n < 2){return 1;}else{return fibonacci(n-2) + fibonacci(n-1);}})(40);
+        },2);
       });
 
 
     });  
 
-    describe('Given a Javascript function with an error', function() {
+    xdescribe('Given a Javascript function with an error', function() {
 
       it ('the worker should return "ok" with the correct result', function(done) {
 
@@ -58,7 +63,7 @@ describe('Single worker :: ', function () {
 
     });  
 
-    describe('Given a Javascript function that takes longer than 250 ms to complete', function() {
+    xdescribe('Given a Javascript function that takes longer than 250 ms to complete', function() {
 
       it ('quarantine should respond with a timeout error', function(done) {
 
@@ -73,7 +78,7 @@ describe('Single worker :: ', function () {
 
     }); 
 
-    describe('Passing in context', function() {
+    xdescribe('Passing in context', function() {
 
       it ('the worker should return "ok" with the correct result', function(done) {
 
@@ -90,7 +95,7 @@ describe('Single worker :: ', function () {
 
   });
 
-  describe("Overriding timeout to 1000ms", function() {
+  xdescribe("Overriding timeout to 1000ms", function() {
 
     describe('Given a Javascript function that takes longer than 250 ms to complete', function() {
 

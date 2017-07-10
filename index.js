@@ -164,9 +164,6 @@ function _run(worker, context, script, taskOptions, cb) {
   // Generate a random key to identify this task
   var key = Math.random();
 
-  // Spin up a worker if we don't have one
-  if (!worker) {spinUpWorker();}
-
   // Handle messages coming back from the worker
   worker.on("message", handleWorkerMessage);
   // Handle the worker dying an untimely death
@@ -174,10 +171,10 @@ function _run(worker, context, script, taskOptions, cb) {
 
   // Give the worker its marching orders
   worker.send({context: context, script: script, key: key});
+  var time;
 
   // Handler a return message from the worker
   function handleWorkerMessage(result) {
-
     // If this message isn't about the task we're waiting for, ignore it.
     // This should never happen at this point, since workers should only
     // be handling one task at a time.
@@ -185,7 +182,9 @@ function _run(worker, context, script, taskOptions, cb) {
 
     // If the message is "begun", we'll start the countdown
     if (result.status == "begun") {
-      // Set up a timeout--if the worker takes to long, we'll
+      time = new Date().getTime();
+      // console.log(time);
+      // Set up a timeout--if the worker takes too long, we'll
       // tell the caller that it failed and respawn it
       selfDestruct = setTimeout(function() {
 
@@ -206,7 +205,8 @@ function _run(worker, context, script, taskOptions, cb) {
 
       return;
     }
-
+    var newtime = new Date().getTime();
+    // console.log(newtime, newtime-time);
     // Clear the self-destruct
     clearTimeout(selfDestruct);
 
